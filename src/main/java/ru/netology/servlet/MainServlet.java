@@ -7,9 +7,18 @@ import ru.netology.service.PostService;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 public class MainServlet extends HttpServlet {
     private PostController controller;
+    private static final String GET = "GET";
+    private static final String POST = "POST";
+    private static final String DELETE = "DELETE";
+
+    private static final String URL_API_POSTS = "/api/posts";
+    private static final String URL_API_POSTS_ID = "/api/posts/\\d+";
+
+    private static final String DELIMITER = "/";
 
     @Override
     public void init() {
@@ -18,32 +27,60 @@ public class MainServlet extends HttpServlet {
         controller = new PostController(service);
     }
 
+    public boolean getAllPosts(String method, String path, HttpServletResponse resp) throws IOException {
+        if (path.equals(URL_API_POSTS) && method.equals(GET)) {
+            controller.all(resp);
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean savePost(String method, String path, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (path.equals(URL_API_POSTS) && method.equals(POST)) {
+            controller.save(req.getReader(), resp);
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean getPost(String method, String path, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (path.equals(URL_API_POSTS_ID) && method.equals(GET)) {
+            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)));
+            controller.getById(id, resp);
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean deletePost(String method, String path, HttpServletRequest req, HttpServletResponse resp){
+        if (path.equals(URL_API_POSTS_ID) && method.equals(DELETE)) {
+            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)));
+            controller.removeById(id, resp);
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) {
         // если деплоились в root context, то достаточно этого
         try {
             final var path = req.getRequestURI();
             final var method = req.getMethod();
+
             // primitive routing
-            if (method.equals("GET") && path.equals("/api/posts")) {
-                controller.all(resp);
-                return;
+            if(getAllPosts(method, path, resp)){}
+            else if(savePost(method, path, req, resp)){}
+            else if(getPost(method, path, req, resp)){}
+            else if(deletePost(method, path, req, resp)){}
+            else {
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             }
-            if ((method.equals("GET") || method.equals("DELETE")) && path.matches("/api/posts/\\d+")) {
-                // easy way
-                final var id = Long.parseLong(path.substring(path.lastIndexOf("/") + 1));
-                if (method.equals("GET")) {
-                    controller.getById(id, resp);
-                } else if(method.equals("DELETE")){
-                    controller.removeById(id, resp);
-                }
-                return;
-            }
-            if (method.equals("POST") && path.equals("/api/posts")) {
-                controller.save(req.getReader(), resp);
-                return;
-            }
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+
         } catch (Exception e) {
             e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
