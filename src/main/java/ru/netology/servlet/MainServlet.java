@@ -1,14 +1,12 @@
 package ru.netology.servlet;
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import ru.netology.controller.PostController;
-import ru.netology.repository.PostRepository;
-import ru.netology.service.PostService;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
 
 public class MainServlet extends HttpServlet {
     private PostController controller;
@@ -23,9 +21,8 @@ public class MainServlet extends HttpServlet {
 
     @Override
     public void init() {
-        final var repository = new PostRepository();
-        final var service = new PostService(repository);
-        controller = new PostController(service);
+        final var ctx = new AnnotationConfigApplicationContext("ru.netology");
+        controller = ctx.getBean(PostController.class);
     }
 
     public boolean getAllPosts(String method, String path, HttpServletResponse resp) throws IOException {
@@ -47,8 +44,8 @@ public class MainServlet extends HttpServlet {
     }
 
     public boolean getPost(String method, String path, HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (path.equals(URL_API_POSTS_ID) && method.equals(GET)) {
-            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)));
+        if (path.matches(URL_API_POSTS_ID) && method.equals(GET)) {
+            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)+1));
             controller.getById(id, resp);
             return true;
         }
@@ -57,8 +54,8 @@ public class MainServlet extends HttpServlet {
     }
 
     public boolean deletePost(String method, String path, HttpServletRequest req, HttpServletResponse resp){
-        if (path.equals(URL_API_POSTS_ID) && method.equals(DELETE)) {
-            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)));
+        if (path.matches(URL_API_POSTS_ID) && method.equals(DELETE)) {
+            Long id = Long.parseLong(req.getRequestURI().substring(req.getRequestURI().lastIndexOf(DELIMITER)+1));
             controller.removeById(id, resp);
             return true;
         }
